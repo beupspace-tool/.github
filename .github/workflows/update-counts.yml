@@ -2,56 +2,59 @@ name: Update repo counts
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # daily midnight UTC
-  workflow_dispatch:        # manual trigger
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   update-counts:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Count repos by topic
-        id: count
+      - name: Count and update README
         env:
           GH_TOKEN: ${{ secrets.ORG_TOKEN }}
         run: |
-          count_topic() {
-            gh repo list beupspace-tool --limit 100 --topic "$1" --json name | python3 -c "import sys,json; print(len(json.load(sys.stdin)))"
-          }
-          echo "beup_product=$(count_topic beup-product)" >> $GITHUB_OUTPUT
-          echo "beup_ops=$(count_topic beup-ops)" >> $GITHUB_OUTPUT
-          echo "client_work=$(count_topic client-work)" >> $GITHUB_OUTPUT
-          echo "fork_ref=$(count_topic fork-reference)" >> $GITHUB_OUTPUT
+          python3 - << 'SCRIPT'
+import subprocess, json
 
-      - name: Update README
-        env:
-          P=${{ steps.count.outputs.beup_product }}
-          O=${{ steps.count.outputs.beup_ops }}
-          C=${{ steps.count.outputs.client_work }}
-          F=${{ steps.count.outputs.fork_ref }}
-        run: |
-          cat > profile/README.md << EOF
-# BEUP Space
+def count_topic(topic):
+    r = subprocess.run(
+        ['gh', 'repo', 'list', 'beupspace-tool', '--limit', '100', '--topic', topic, '--json', 'name'],
+        capture_output=True, text=True
+    )
+    return len(json.loads(r.stdout))
 
-[![BEUP Products](https://img.shields.io/badge/🛠%20BEUP%20Products-${P}%20repos-4A90D9?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Abeup-product&type=repositories)
-[![BEUP Ops](https://img.shields.io/badge/⚙️%20BEUP%20Ops-${O}%20repos-2ECC71?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Abeup-ops&type=repositories)
-[![Client Work](https://img.shields.io/badge/💼%20Client%20Work-${C}%20repos-E67E22?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Aclient-work&type=repositories)
-[![Fork Reference](https://img.shields.io/badge/🔖%20Fork%20Reference-${F}%20repos-9B59B6?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Afork-reference&type=repositories)
+p = count_topic('beup-product')
+o = count_topic('beup-ops')
+c = count_topic('client-work')
+f = count_topic('fork-reference')
 
----
+readme = (
+    "# BEUP Space\n\n"
+    f"[![BEUP Products](https://img.shields.io/badge/BEUP_Products-{p}_repos-4A90D9?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Abeup-product&type=repositories)\n"
+    f"[![BEUP Ops](https://img.shields.io/badge/BEUP_Ops-{o}_repos-2ECC71?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Abeup-ops&type=repositories)\n"
+    f"[![Client Work](https://img.shields.io/badge/Client_Work-{c}_repos-E67E22?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Aclient-work&type=repositories)\n"
+    f"[![Fork Reference](https://img.shields.io/badge/Fork_Reference-{f}_repos-9B59B6?style=for-the-badge)](https://github.com/search?q=org%3Abeupspace-tool+topic%3Afork-reference&type=repositories)\n\n"
+    "---\n\n"
+    "| Category | Description |\n"
+    "|---|---|\n"
+    "| **BEUP Products** | Commercial tools & apps built for BEUP platform |\n"
+    "| **BEUP Ops** | Internal workspace, Claude config, operational tooling |\n"
+    "| **Client Work** | Consulting & client-specific projects |\n"
+    "| **Fork Reference** | External repos forked for reference or customization |\n"
+)
 
-| Category | Description |
-|---|---|
-| **BEUP Products** | Commercial tools & apps built for BEUP platform |
-| **BEUP Ops** | Internal workspace, Claude config, operational tooling |
-| **Client Work** | Consulting & client-specific projects |
-| **Fork Reference** | External repos forked for reference or customization |
-EOF
+with open('profile/README.md', 'w') as fh:
+    fh.write(readme)
+print(f"Updated: product={p} ops={o} client={c} fork={f}")
+SCRIPT
 
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add profile/README.md
-          git diff --cached --quiet || git commit -m "chore: update repo counts" && git push
+          git diff --cached --quiet && echo "No changes" || (git commit -m "chore: update repo counts" && git push)
