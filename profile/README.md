@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://avatars.githubusercontent.com/u/258587559?s=200&v=4" alt="BEUP Space" width="80" style="border-radius:50%" />
+<img src="https://beup.space/wp-content/uploads/2025/12/logo-final-1536x530-1.png" alt="BEUP Space" height="55" />
 
 <br/><br/>
 
