@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://beup.space/wp-content/uploads/2024/01/logo-beup-teal.png" alt="BEUP Space" height="60" />
+<img src="https://avatars.githubusercontent.com/u/258587559?s=200&v=4" alt="BEUP Space" width="80" style="border-radius:50%" />
 
-<br/>
+<br/><br/>
 
 **Tối ưu hóa quản lý & tự động hóa công việc**
 <br/>
